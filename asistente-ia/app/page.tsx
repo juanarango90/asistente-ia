@@ -1,22 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAssistants } from '@/lib/context/assistant-context';
 import { AssistantCard } from '@/components/assistant/assistant-card';
+import { AssistantModal } from '@/components/assistant/assistant-modal';
 import { EmptyState } from '@/components/assistant/empty-state';
 import { Button } from '@/components/ui/button';
 import { Assistant } from '@/types/assistant';
 
 export default function Home() {
-  const { assistants, deleteAssistant } = useAssistants();
+  const { assistants, createAssistant, updateAssistant, deleteAssistant } =
+    useAssistants();
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAssistant, setEditingAssistant] = useState<Assistant | null>(
     null
   );
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Evitar error de hidratación: solo renderizar después de montar en el cliente
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   function handleEdit(assistant: Assistant) {
     setEditingAssistant(assistant);
-    // TODO: Abrir modal de edición (Paso 4)
-    console.log('Editar asistente:', assistant);
+    setIsModalOpen(true);
   }
 
   function handleDelete(id: string) {
@@ -27,8 +35,24 @@ export default function Home() {
 
   function handleCreate() {
     setEditingAssistant(null);
-    // TODO: Abrir modal de creación (Paso 4)
-    console.log('Crear nuevo asistente');
+    setIsModalOpen(true);
+  }
+
+  function handleSave(assistantData: Omit<Assistant, 'id'>) {
+    if (editingAssistant) {
+      // Modo edición: actualizar asistente existente
+      updateAssistant(editingAssistant.id, assistantData);
+    } else {
+      // Modo creación: crear nuevo asistente
+      createAssistant(assistantData);
+    }
+    setIsModalOpen(false);
+    setEditingAssistant(null);
+  }
+
+  function handleCloseModal() {
+    setIsModalOpen(false);
+    setEditingAssistant(null);
   }
 
   return (
@@ -63,7 +87,12 @@ export default function Home() {
         </div>
 
         {/* Listado de asistentes */}
-        {assistants.length === 0 ? (
+        {!isMounted ? (
+          // Placeholder mientras carga (evita error de hidratación)
+          <div className="flex items-center justify-center py-16">
+            <div className="text-gray-400">Cargando...</div>
+          </div>
+        ) : assistants.length === 0 ? (
           <EmptyState onCreate={handleCreate} />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -78,6 +107,14 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Modal de creación/edición */}
+      <AssistantModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSave={handleSave}
+        assistant={editingAssistant}
+      />
     </div>
   );
 }
