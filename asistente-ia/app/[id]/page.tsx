@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Toast } from '@/components/ui/toast';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { simulatedResponses } from '@/types/assistant';
 
 interface Message {
@@ -35,6 +37,12 @@ export default function TrainingPage() {
   const [inputMessage, setInputMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [resetConfirm, setResetConfirm] = useState(false);
+  const [toast, setToast] = useState<{
+    isVisible: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }>({ isVisible: false, message: '', type: 'success' });
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Evitar error de hidratación
@@ -71,8 +79,15 @@ export default function TrainingPage() {
     // Simular guardado
     setTimeout(() => {
       setIsSaving(false);
-      alert('Reglas guardadas correctamente');
+      showToast('Reglas guardadas correctamente', 'success');
     }, 500);
+  }
+
+  function showToast(
+    message: string,
+    type: 'success' | 'error' | 'info' = 'success'
+  ) {
+    setToast({ isVisible: true, message, type });
   }
 
   // Enviar mensaje en el chat
@@ -115,9 +130,13 @@ export default function TrainingPage() {
 
   // Reiniciar conversación
   function handleResetChat() {
-    if (confirm('¿Estás seguro de que deseas reiniciar la conversación?')) {
-      setMessages([]);
-    }
+    setResetConfirm(true);
+  }
+
+  function confirmReset() {
+    setMessages([]);
+    setResetConfirm(false);
+    showToast('Conversación reiniciada', 'info');
   }
 
   // Mostrar loading mientras se monta
@@ -295,6 +314,26 @@ export default function TrainingPage() {
           </div>
         </div>
       </div>
+
+      {/* Dialog de confirmación para reiniciar chat */}
+      <ConfirmDialog
+        isOpen={resetConfirm}
+        onClose={() => setResetConfirm(false)}
+        onConfirm={confirmReset}
+        title="Reiniciar Conversación"
+        message="¿Estás seguro de que deseas reiniciar la conversación? Se perderán todos los mensajes."
+        confirmText="Reiniciar"
+        cancelText="Cancelar"
+        isDestructive
+      />
+
+      {/* Toast de notificaciones */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={() => setToast({ ...toast, isVisible: false })}
+      />
     </div>
   );
 }
