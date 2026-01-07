@@ -5,6 +5,8 @@ import { useAssistants } from '@/lib/context/assistant-context';
 import { AssistantCard } from '@/components/assistant/assistant-card';
 import { AssistantModal } from '@/components/assistant/assistant-modal';
 import { EmptyState } from '@/components/assistant/empty-state';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Toast } from '@/components/ui/toast';
 import { Button } from '@/components/ui/button';
 import { Assistant } from '@/types/assistant';
 
@@ -16,6 +18,16 @@ export default function Home() {
     null
   );
   const [isMounted, setIsMounted] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{
+    isOpen: boolean;
+    assistantId: string | null;
+    assistantName: string;
+  }>({ isOpen: false, assistantId: null, assistantName: '' });
+  const [toast, setToast] = useState<{
+    isVisible: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }>({ isVisible: false, message: '', type: 'success' });
 
   // Evitar error de hidratación: solo renderizar después de montar en el cliente
   useEffect(() => {
@@ -28,9 +40,20 @@ export default function Home() {
   }
 
   function handleDelete(id: string) {
-    if (confirm('¿Estás seguro de que deseas eliminar este asistente?')) {
-      deleteAssistant(id);
+    const assistant = assistants.find((a) => a.id === id);
+    setDeleteConfirm({
+      isOpen: true,
+      assistantId: id,
+      assistantName: assistant?.name || 'este asistente',
+    });
+  }
+
+  function confirmDelete() {
+    if (deleteConfirm.assistantId) {
+      deleteAssistant(deleteConfirm.assistantId);
+      showToast('Asistente eliminado correctamente', 'success');
     }
+    setDeleteConfirm({ isOpen: false, assistantId: null, assistantName: '' });
   }
 
   function handleCreate() {
@@ -42,12 +65,21 @@ export default function Home() {
     if (editingAssistant) {
       // Modo edición: actualizar asistente existente
       updateAssistant(editingAssistant.id, assistantData);
+      showToast('Asistente actualizado correctamente', 'success');
     } else {
       // Modo creación: crear nuevo asistente
       createAssistant(assistantData);
+      showToast('Asistente creado correctamente', 'success');
     }
     setIsModalOpen(false);
     setEditingAssistant(null);
+  }
+
+  function showToast(
+    message: string,
+    type: 'success' | 'error' | 'info' = 'success'
+  ) {
+    setToast({ isVisible: true, message, type });
   }
 
   function handleCloseModal() {
@@ -114,6 +146,28 @@ export default function Home() {
         onClose={handleCloseModal}
         onSave={handleSave}
         assistant={editingAssistant}
+      />
+
+      {/* Dialog de confirmación de eliminación */}
+      <ConfirmDialog
+        isOpen={deleteConfirm.isOpen}
+        onClose={() =>
+          setDeleteConfirm({ isOpen: false, assistantId: null, assistantName: '' })
+        }
+        onConfirm={confirmDelete}
+        title="Eliminar Asistente"
+        message={`¿Estás seguro de que deseas eliminar "${deleteConfirm.assistantName}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        isDestructive
+      />
+
+      {/* Toast de notificaciones */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={() => setToast({ ...toast, isVisible: false })}
       />
     </div>
   );

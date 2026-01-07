@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { Assistant } from '@/types/assistant';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 
 interface AssistantCardProps {
   assistant: Assistant;
@@ -51,7 +50,7 @@ export function AssistantCard({
     };
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className="hover:shadow-md transition-shadow overflow-visible">
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="flex-1">
